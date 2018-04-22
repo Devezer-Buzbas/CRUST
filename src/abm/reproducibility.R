@@ -1,6 +1,6 @@
 ################
 ##
-## @description Main reproducibility simulation
+## @description Main ABM reproducibility simulation
 ##
 ## @param None
 ##
@@ -24,7 +24,7 @@ library(MCMCpack)
 ## PATHS
 #############
 baseDir <- "."
-scriptDir <- paste0(baseDir, "/src/abm/functions")
+scriptDir <- paste0(baseDir, "/src/functions")
 inputDir <- paste0(baseDir, "/data")
 outputDir <- paste0(baseDir, "/data")
 

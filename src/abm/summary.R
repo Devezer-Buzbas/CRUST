@@ -1,6 +1,6 @@
 ################
 ##
-## @description Generate summary of multiple simulations
+## @description Summarizes multiple simulations run data
 ##
 ## @param None
 ##
@@ -26,9 +26,9 @@ library(data.table)
 ## PATHS
 #############
 baseDir <- "."
-scriptDir <- paste0(baseDir, "/src/abm/functions")
-inputDir <- paste0(baseDir, "/data")
-outputDir <- paste0(baseDir, "/data")
+scriptDir <- paste0(baseDir, "/src/functions")
+inputDir <- paste0(baseDir, "/data/raw")
+outputDir <- paste0(baseDir, "/data/summary")
 
 
 #############
@@ -64,7 +64,7 @@ models <- generateModels(k)
 ## Number of models
 numModels <- length(models)
 
-m <- c(2, 7, 14)
+modelsL <- c(2, 7, 14)
 
 sigmas <- 1:3
 
@@ -83,7 +83,7 @@ freqCont <- NULL
 freqContCode <- NULL
 freqNTGM <- NULL
 freqNTGMCode <- NULL
-for(tModelIndex in 1:length(m)){
+for(tModelIndex in 1:length(modelsL)){
   for(sigmaIndex in sigmas){
     for(typeIndex in types){
       
@@ -92,7 +92,7 @@ for(tModelIndex in 1:length(m)){
       }
       
       ## True model
-      tModel <- modelToStr(models[[m[tModelIndex]]])
+      tModel <- modelToStr(models[[modelsL[tModelIndex]]])
       
       ## Sigma
       if(sigmaIndex == 1){
