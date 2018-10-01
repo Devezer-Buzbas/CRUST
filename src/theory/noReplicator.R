@@ -1,8 +1,8 @@
 ################
 ##
 ## @description Population with No Replicator
-##              Model: Markov chain (first order, satisfying Markov property) 
-##              Analysis: using probability calculus and 
+##              Model: Markov chain (first order, satisfying Markov property)
+##              Analysis: using probability calculus and
 ##              Monte Carlo estimates for model comparison
 ##
 ## @param None
@@ -75,13 +75,14 @@ models[[1]] = t(as.matrix(models[[1]]))
 L = length(models)
 
 #-----------------------------------
-# Scientist model proposal matrices: element ij is the probability of 
-# proposing model j if the current global is model i 
+# Scientist model proposal matrices: element ij is the probability of
+# proposing model j if the current global is model i
 
 ## Tess matrix
 tessMatrix <- matrix(data=0.0, L, L)
 for(index in 1:L){
-  tessMatrix[index,] <- modelSimilarByTerm(models[[index]], models, mode="all")
+  tessMatrix[index,] <- modelSimilarByTerm(models[[index]], models,
+                        mode="all", modelSelection="soft")
   nSimModels <- sum(tessMatrix[index,])
   tessMatrix[index,] <- tessMatrix[index,] * (1 / (nSimModels + 1))
   tessMatrix[index, which(tessMatrix[index,] == 0)] <- (1 -
@@ -91,7 +92,8 @@ for(index in 1:L){
 ## Bo matrix
 boMatrix <- matrix(data=0.0, L, L)
 for(index in 1:L){
-  boMatrix[index,] <- modelSimilarByInteraction(models[[index]], models, mode="all")
+  boMatrix[index,] <- modelSimilarByInteraction(models[[index]], models,
+                      mode="all", modelSelection="soft")
   nSimModels <- sum(boMatrix[index,])
   boMatrix[index,] <- boMatrix[index,] * (1 / (nSimModels + 1))
   boMatrix[index, which(boMatrix[index,] == 0)] <- (1 -
@@ -102,7 +104,7 @@ for(index in 1:L){
 maveMatrix <- matrix(data=0.0, L, L)
 for(index in 1:L){
   maveMatrix[index,] <- 1 / length(maveMatrix[index,])
-} 
+}
 
 # Scientist populations
 
@@ -123,24 +125,24 @@ mave <- (maveMatrix * 0.99) + (boMatrix + tessMatrix) * 0.005
 # another model's score, given a true model, when model comparison statistic
 # is AIC or SC
 #
-# Paic: List whose element l is for true model l 
-# for model selection statistic AIC. 
+# Paic: List whose element l is for true model l
+# for model selection statistic AIC.
 #
-# Psc: List whose element l is for true model l 
-# for model selection statistic AIC. 
+# Psc: List whose element l is for true model l
+# for model selection statistic AIC.
 #
 # Each element of the list is a matrix of probabilities,
 # element ij is the model j having lower model selection score than model i:
-# that is P(S(M_i)>S(M_j)|true model l).    
-# Diagonal, probability from a model to self is 1 by convention. 
-#  
+# that is P(S(M_i)>S(M_j)|true model l).
+# Diagonal, probability from a model to self is 1 by convention.
+#
 Paic <- list()
 Psc <- list()
 for (l in 1:L) {
   # for AIC unzip the ModelComparisonProbabilitiesSigma02AIC
   # look up tables (generates with N=1e5 samples) in the appropriate directory.
-  # Alternatively use  
-  # ModelComparisonProbabilitiesByMonteCarlo.R coupled with 
+  # Alternatively use
+  # ModelComparisonProbabilitiesByMonteCarlo.R coupled with
   # the function GetAICConstant.R function to regenerate these files for a desired
   # precision.
   name <- paste0(inputDir,
@@ -157,36 +159,36 @@ for (l in 1:L) {
   Psc[[l]] <- ProbMC
 }
 #------------------------------------------------------------
-# Transition probability matrices for 
+# Transition probability matrices for
 # a: 4 scientist populations: All, Tess, Bo, Mave
 # m: 14 true models
-# P: (14,14,a,m) array. P(,,a,m) is the transition 
+# P: (14,14,a,m) array. P(,,a,m) is the transition
 # probability matrix for scientist population a, true model m,
 # model selection statistic is AIC
 #
-# Q: (14,14,a,m) array. Q(,,a,m) is the transition 
+# Q: (14,14,a,m) array. Q(,,a,m) is the transition
 # probability matrix for scientist population a, true model m,
 # model selection statistic is SC
 #
 P <- array(0, dim = c(L, L, 4, L)) # AIC
 for (i in 1: L) {
   p <- all * Paic[[i]]; P[,,1,i] <- p / rowSums(p); # normalize so that probabilities sum to 1
-  
+
   p <- tess*Paic[[i]]; P[,,2,i] <- p / rowSums(p);
-  
+
   p <- bo*Paic[[i]]; P[,,3,i] <- p / rowSums(p);
-  
+
   p <- mave*Paic[[i]]; P[,,4,i] <- p / rowSums(p);
 }
 #
 Q <- array(0, dim = c(L, L, 4, L)) # SC
 for (i in 1:L) {
   q <- all * Psc[[i]]; Q[,,1,i] = q / rowSums(q);
-  
+
   q <- tess*Psc[[i]]; Q[,,2,i] = q / rowSums(q);
-  
+
   q <- bo*Psc[[i]]; Q[,,3,i] = q / rowSums(q);
-  
+
   q <- mave*Psc[[i]]; Q[,,4,i] = q/rowSums(q);
 }
 #------------------------------------------------------------
@@ -195,7 +197,7 @@ for (i in 1:L) {
 #------------------------------------------------------------
 # begin Stickiness
 #
-# 1. Stickiness. 
+# 1. Stickiness.
 # Mean (over proposed models) probability of staying in a global model j
 # conditional on a true model i. The diagonal is for the true model
 # One matrix of probabilities for each scientist population.
@@ -211,11 +213,11 @@ MeanProbStayInModelBoSC <- rep(0, L)
 MeanProbStayInModelMaveSC <- rep(0, L)
 #
 for (i in 1:L) {
-# for each true model transpose of Paic (and PSc) gives 
+# for each true model transpose of Paic (and PSc) gives
 # the prob of model staying as global, not being beaten
-# by the proposed model: Paic[[l]][i,j] 
+# by the proposed model: Paic[[l]][i,j]
 # is equal to P(S(M_j)<S(M_i)|l is true model)
-# 
+#
 MeanProbStayInModelAllAIC[i] <- rowSums(all * t(Paic[[i]]))[i]
 MeanProbStayInModelTessAIC[i] <- rowSums(tess * t(Paic[[i]]))[i]
 MeanProbStayInModelBoAIC[i] <- rowSums(bo * t(Paic[[i]]))[i]
@@ -243,7 +245,7 @@ MeanProbStayInModelmatrixSC <- matrix(c(MeanProbStayInModelAllSC,
                                         MeanProbStayInModelTessSC),
                                         nrow = 4, ncol = L, byrow = TRUE)
 #------------------------------------------------------------------
-# Next bit of code rearranges models for the heatmap 
+# Next bit of code rearranges models for the heatmap
 # so that the model complexity is in increasing order
 #
 zAIC <- MeanProbStayInModelmatrixAIC
@@ -277,21 +279,21 @@ grid.arrange(StickinessAIC,StickinessSC, nrow=2)
 #---------------------------------------------
 # begin Mean First Passage Time
 #
-# 2. Mean (over all models) passage time to 
+# 2. Mean (over all models) passage time to
 # the true model j, starting form model i.
 # Solution to a system of L linear equations, with
-# L unknowns. 
+# L unknowns.
 # Given in the format of A*x=b
 # where A is the modified transition probability matrix P with
 # diagonals (p_{ii}-1), b is a (L x 1) vector of -1,
 # x are tau_{i,T} of mean passage times.
-# 
+#
 TauAllAIC <- matrix(0, L, L)
 TauTessAIC <- matrix(0, L, L)
 TauBoAIC <- matrix(0, L, L)
 TauMaveAIC <- matrix(0, L, L)
 #
-TauAllSC <- matrix(0, L, L) 
+TauAllSC <- matrix(0, L, L)
 TauTessSC <- matrix(0, L, L)
 TauBoSC <- matrix(0, L, L)
 TauMaveSC <- matrix(0, L, L)
@@ -299,9 +301,9 @@ TauMaveSC <- matrix(0, L, L)
 D <- diag(rep(1, (L-1)))
 b <- rep(-1, (L-1))
 for (i in 1:L) {
-  # By definition of passage time tau_{T,T}=0. 
-  # For the system of linear equations, we have (L-1) x (L-1) 
-  # matrix of coefficients 
+  # By definition of passage time tau_{T,T}=0.
+  # For the system of linear equations, we have (L-1) x (L-1)
+  # matrix of coefficients
   vallaic <- solve((P[,,1,i][-i,-i] - D), b)
   vtessaic <- solve((P[,,2,i][-i,-i] - D), b)
   vboaic <- solve((P[,,3,i][-i,-i] - D), b)
@@ -353,7 +355,7 @@ for (i in 1:L) {
 # to put in correct order of complexity
 #
 #
-# Plot Results 
+# Plot Results
 modelnum <- c(1:L)
 
 TauAllAIC <- reAssign(TauAllAIC)
@@ -389,49 +391,49 @@ PlotMFTPTessAIC <- levelplot(t(MFPTTessAIC.dat),
           col.regions = heat.colors(100)[length(heat.colors(100)):10],
           main = "Tess")
 
-PlotMFTPMaveAIC <- levelplot(t(MFPTMaveAIC.dat), 
+PlotMFTPMaveAIC <- levelplot(t(MFPTMaveAIC.dat),
           xlab = "To True Model",
           ylab = "From Model",
           at = seq(mincol,maxcol,0.25),
           col.regions = heat.colors(100)[length(heat.colors(100)):10],
           main = "Mave")
 
-PlotMFTPBoAIC <- levelplot(t(MFPTBoAIC.dat), 
+PlotMFTPBoAIC <- levelplot(t(MFPTBoAIC.dat),
           xlab = "To True Model",
           ylab = "From Model",
           at = seq(mincol,maxcol,0.2),
           col.regions = heat.colors(100)[length(heat.colors(100)):10],
           main = "Bo")
 
-PlotMFTPAllAIC <- levelplot(t(MFPTAllAIC.dat), 
+PlotMFTPAllAIC <- levelplot(t(MFPTAllAIC.dat),
           xlab = "To True Model",
           ylab = "From Model",
           at = seq(mincol,maxcol,0.2),
           col.regions = heat.colors(100)[length(heat.colors(100)):10],
           main = "All")
 
-PlotMFTPTessSC <- levelplot(t(MFPTTessSC.dat), 
+PlotMFTPTessSC <- levelplot(t(MFPTTessSC.dat),
           xlab = "To True Model (SC)",
           ylab = "From Model",
           at = seq(mincol,maxcol,1),
           col.regions = heat.colors(100)[length(heat.colors(100)):10],
           main = "Tess")
 
-PlotMFTPMaveSC <- levelplot(t(MFPTMaveSC.dat), 
+PlotMFTPMaveSC <- levelplot(t(MFPTMaveSC.dat),
           xlab = "To True Model",
           ylab = "From Model",
           at = seq(mincol,maxcol,1),
           col.regions = heat.colors(100)[length(heat.colors(100)):10],
           main = "Mave")
 
-PlotMFTPBoSC <- levelplot(t(MFPTBoSC.dat), 
+PlotMFTPBoSC <- levelplot(t(MFPTBoSC.dat),
           xlab = "To True Model",
           ylab = "From Model",
           at = seq(mincol,maxcol,1),
           col.regions = heat.colors(100)[length(heat.colors(100)):10],
           main = "Bo")
 
-PlotMFTPAllSC <- levelplot(t(MFPTAllSC.dat), 
+PlotMFTPAllSC <- levelplot(t(MFPTAllSC.dat),
           xlab = "To True Model",
           ylab = "From Model",
           at = seq(mincol,maxcol,1),
@@ -465,7 +467,7 @@ sd(TauAllSC)
 # end Mean First Passage Time
 #------------------------------------------------------------
 #------------------------------------------------------------
-# B. Stationary Properties of the System 
+# B. Stationary Properties of the System
 #------------------------------------------------------------
 # begin Stationary Distribution
 #
@@ -483,7 +485,7 @@ StatDistModelsAICMave <- matrix(0, L, L)
 # Get the transition matrix for the Markov chain
 
 for (i in 1:L){
-  
+
 # Normalize to avoid numerical error (probability distribution sums to 1)
 
 PAll <- P[,,1,i]; PTess <- P[,,2,i]; PBo <- P[,,3,i]; PMave <- P[,,4,i];
@@ -495,12 +497,12 @@ PPAll <- PAll%*%PAll; PPTess <- PTess%*%PTess; PPBo <- PBo%*%PBo; PPMave <- PMav
 QQAll <- QAll%*%QAll; QQTess <- QTess%*%QTess; QQBo <- QBo%*%QBo; QQMave <- QMave%*%QMave;
 
 for (j in 1:30) {
-# run for 30 time steps 
-# stationarity is reached quickly so we do not implement 
-# a numerical convergence check, but easy to run for each 
+# run for 30 time steps
+# stationarity is reached quickly so we do not implement
+# a numerical convergence check, but easy to run for each
 # time step and check for numerical convergence if need be
   PPAll <- PPAll%*%PAll; PPTess <- PPTess%*%PTess;  PPBo <- PPBo%*%PBo;  PPMave <- PPMave%*%PMave;
-  
+
   QQAll <- QQAll%*%QAll; QQTess <- QQTess%*%QTess;  QQBo <- QQBo%*%QBo;  QQMave <- QQMave%*%QMave;
 }
 
@@ -530,10 +532,10 @@ StatDistModelsSCMave <- reAssign(StatDistModelsSCMave)
 
 # For Plots create summary information:
 
-# For three principal probabilities for each true model, 
-# and scientist population, create a matrix of model IDs (cols 1:3) 
-# and stationary probabilities for these models (cols 4:6) corresponding 
-# to these models 
+# For three principal probabilities for each true model,
+# and scientist population, create a matrix of model IDs (cols 1:3)
+# and stationary probabilities for these models (cols 4:6) corresponding
+# to these models
 #
 nclosemodels <- 3
 AICAll <- matrix(0, L, nclosemodels * 2)
