@@ -1,14 +1,15 @@
 ################
 ##
-## @description Main ABM reproducibility simulation
+## @description Main reproducibility simulation
 ##
 ## @param None
 ##
 ## @return None
 ##
-## @lastChange 2018-03-22
+## @lastChange 2018-09-18
 ##
 ## @changes
+##  simulator parameters modelSelection [2018-09-18]
 ##  Terminology adjustment [2018-03-22]
 ##  Parameters output file [2017-06-17]
 ##
@@ -125,6 +126,14 @@ nMave <- 1
 ##
 modelCompare <- AIC
 
+##
+## Type of Research Strategy selection
+##
+## "soft"
+## "hard"
+##
+modelSelection <- "soft"
+
 ## Output filename
 outputFile <- "output.csv"
 paramFile <- "parameters.rds"
@@ -146,6 +155,6 @@ seeds <- seedGenerator(replications, paste0(inputDir, "/seeds.csv"))
 ## SIMULATION
 ###################
 simulator(replications, timesteps, models, k, tModel,
-    nRey, nTess, nBo, nMave, weights, sampleSize, correlation, sigma, 
-    modelCompare, inputDir, outputDir, outputFile, paramFile,
-    verbose, ndec, seeds)
+  nRey, nTess, nBo, nMave, weights, sampleSize, correlation, sigma,
+  modelCompare, modelSelection, inputDir, outputDir, outputFile, paramFile,
+  verbose, ndec, seeds)

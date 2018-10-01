@@ -2,20 +2,22 @@
 ##
 ## @description Execute a simulation of the reproducibility model
 ##
-## @param replications Number of replications to run
-## @param timesteps    Length of each simulation
-## @param models       All possible linear regression models
-## @param k            Number of factors
-## @param tModel       String representing the True model
-## @param nRey         Number of agents of type Rey
-## @param nTess        Number of agents of type Tess
-## @param nBo          Number of agents of type Bo
-## @param nMave        Number of agents of type Mave
-## @param weights      Betas weight
-## @param sampleSize   Sample size
-## @param correlation  Sample correlation
-## @param sigma        Data error variance
-## @param modelCompare Type of model comparison
+## @param replications   Number of replications to run
+## @param timesteps      Length of each simulation
+## @param models         All possible linear regression models
+## @param k              Number of factors
+## @param tModel         String representing the True model
+## @param nRey           Number of agents of type Rey
+## @param nTess          Number of agents of type Tess
+## @param nBo            Number of agents of type Bo
+## @param nMave          Number of agents of type Mave
+## @param weights        Betas weight
+## @param sampleSize     Sample size
+## @param correlation    Sample correlation
+## @param sigma          Data error variance
+## @param modelCompare   Type of model comparison
+## @param modelSelection SOFT select model(s) from the set of all models
+##                       HARD select model(s) from the set of possible models
 ## @param inputDir     Data input directory
 ## @param outputDir    Data output directory
 ## @param outputFile   Raw output file name
@@ -26,16 +28,17 @@
 ##
 ## @return None
 ##
-## @lastChange 2018-03-22
+## @lastChange 2018-09-18
 ##
 ## @changes
+##   Allow agents to reach any model. Added params modelSelection [2018-09-18]
 ##   Terminology adjustment [2018-03-22]
 ##   Included BIC model comparison [2018-02-28]
 ##   Change nBob to nCara, nNel to nNell, nRay to nRey [2017-10-16]
 ##   Included the parameter file output [2017-06-17]
 ##   Included the Beta1 True output [2017-06-08]
 ##   Changed the Distance Calculation [2016-12-07]
-##   Y generated using random Betas assuming error is 1 - sigma [2016-11-13] 
+##   Y generated using random Betas assuming error is 1 - sigma [2016-11-13]
 ##   Added Beta1 Standard Error [2016-11-07]
 ##   Round output values number of decimal places [2016-11-07]
 ##   Fixed the statistics output information [2016-11-01]
@@ -60,41 +63,41 @@
 ################
 simulator <- function(replications, timesteps, models, k, tModel,
     nRey, nTess, nBo, nMave, weights, sampleSize, correlation, sigma,
-    modelCompare, inputDir, outputDir, outputFile, paramFile,
+    modelCompare, modelSelection, inputDir, outputDir, outputFile, paramFile,
     verbose, ndec, seeds){
-  
-  
+
+
   ###################
   ## REPLICA SIMULATION
   ###################
   parameters <- list()
   for(replica in 1:replications){
     set.seed(seeds[replica])
-    
+
     ## Generate Xset and deterministic value of the linear regression
     Xset <- generateXSet(sampleSize, k, correlation)
     tModelBetas <- getBetas(tModel, weights, sigma)
     deterministic <- calculateDet(tModel, Xset, weights, tModelBetas)
-    
+
     ## Select randomly Global Model and previous Global Model
     gModel <- models[[as.integer(runif(1, min=1, max=length(models) + 1))]]
-    
+
     model1 <- models[[as.integer(runif(1, min=1, max=length(models) + 1))]]
     model2 <- gModel
-    
+
     ## Initialize agents
     N <- c(rep(REY, nRey), rep(TESS, nTess), rep(BO, nBo), rep(MAVE, nMave))
     N <- N[shuffle(length(N))]
-    
+
     agentTypes <- N[as.integer(runif(timesteps, min=1,
                                      max=(nRey + nTess + nBo + nMave + 1)))]
-    
+
     #######################
     ## OUTPUT PARAMETERS
     #######################
     output <- matrix(data=NA, nrow=timesteps, ncol=O_NUM_FIELDS)
-    
-    
+
+
     #######################
     ## SIMULATION EXECUTION
     #######################
@@ -102,10 +105,10 @@ simulator <- function(replications, timesteps, models, k, tModel,
       if(verbose){
         print(paste0(replica, " ", step))
       }
-      
+
       ## Select the type of agent
       agentType <- agentTypes[step]
-      
+
       ## Rey
       if(agentType == REY){
         if(!compareModels(model2, gModel)){
@@ -113,27 +116,29 @@ simulator <- function(replications, timesteps, models, k, tModel,
         } else {
           model <- model1
         }
-        
+
       ## Tess
       } else if(agentType == TESS){
-        model <- modelSimilarByTerm(gModel, models, mode="random")
-        
+        model <- modelSimilarByTerm(gModel, models, mode="random",
+                                    modelSelection=modelSelection)
+
       ## Bo
       } else if(agentType == BO){
-        model <- modelSimilarByInteraction(gModel, models, mode="random")
-        
+        model <- modelSimilarByInteraction(gModel, models, mode="random",
+                                           modelSelection=modelSelection)
+
       ## Maverick
       } else if(agentType == MAVE){
         model <- models[[as.integer(runif(1, min=1, max=length(models)+1))]]
       }
-      
+
       model1 <- model
       model2 <- gModel
-      
+
       ## Analyze the Selected Model and Global Model
       Yset <- generateY(deterministic, sigma)
       stat <- analysis(model, gModel, Yset, Xset, weights)
-      
+
       switchModel <- FALSE
       if((modelCompare == TSTATISTICS) &
           (!is.null(stat$model$tstatistics)) &
@@ -176,15 +181,15 @@ simulator <- function(replications, timesteps, models, k, tModel,
           switchModel <- TRUE
         }
       }
-      
+
       initGModel <- gModel
       initGModelStat <- stat$gModel
-      
+
       replicated <- 0
       if(switchModel){
         gModel <- model
         finalGModelStat <- stat$model
-        
+
         ## Not necessary, just to make explicit that in this case REY did not
         ## replicate the previous result
         if(agentType == REY){
@@ -192,12 +197,12 @@ simulator <- function(replications, timesteps, models, k, tModel,
         }
       } else {
         finalGModelStat <- stat$gModel
-        
+
         if(agentType == REY){
           replicated <- 1
         }
       }
-      
+
       ## Record output data
       output[step, O_STRATEGY] <- agentType
       output[step, O_SELECTED_MODEL] <- searchModel(model, models)
@@ -222,7 +227,7 @@ simulator <- function(replications, timesteps, models, k, tModel,
       output[step, O_REPLICATED] <- replicated
       output[step, O_PREDICTORS] <- toString(predictors[[2]][as.numeric(as.character(output[step, O_FINAL_GLOBAL_MODEL]))])
     }
-    
+
     ## Parameter output
     param <- list()
     param[[P_TMODEL]] <- gsub(" ", "", substr(modelToStr(tModel), 5,
@@ -236,17 +241,17 @@ simulator <- function(replications, timesteps, models, k, tModel,
     param[[P_TRUE_BETAS]] <- tModelBetas
     param[[P_XSET]] <- Xset
     parameters[[replica]] <- param
-    
+
     ## Convert output matrix into data table
     output <- data.table(cbind(rep(replica, timesteps), 1:timesteps, output))
     names(output) <- OUTPUT_HEADER
-    
+
     ## Write output data table into a file
     write.table(output, file=paste0(outputDir, "/", outputFile),
         append=ifelse(replica == 1, FALSE, TRUE),
         quote=FALSE, sep=";", row.names=FALSE,
         col.names=ifelse(replica == 1, TRUE, FALSE))
   }
-  
+
   saveRDS(parameters, file=paste0(outputDir, "/", paramFile))
 }
